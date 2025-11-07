@@ -41,13 +41,18 @@ logs
 .env.test.local
 .env.production.local
 
-# Python
+# Python (暂时移除，仅前端部署)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 *.so
+
+# 暂时忽略Python后端文件，专注前端部署
+app.py
+requirements.txt
+templates/
 
 # 上传的数据文件
 uploads/*

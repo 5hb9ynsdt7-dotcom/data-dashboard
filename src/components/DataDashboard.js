@@ -131,10 +131,10 @@ const DataDashboard = ({ data }) => {
   };
   
   // 清除日期筛选
-  const clearDateRange = () => {
-    setDateRange(null);
-    setSelectedMonth(null);
-  };
+  // const clearDateRange = () => {
+  //   setDateRange(null);
+  //   setSelectedMonth(null);
+  // };
   
   // 筛选数据
   const filterData = useCallback(() => {
