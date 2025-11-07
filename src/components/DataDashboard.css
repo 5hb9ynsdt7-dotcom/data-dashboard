@@ -1,0 +1,210 @@
+/* 数据仪表盘样式 */
+.dashboard-container {
+  padding: 16px;
+}
+
+.filter-container {
+  margin-bottom: 24px;
+}
+
+.analysis-summary {
+  margin-bottom: 24px;
+}
+
+.chart-card {
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 客户等级出单表格样式 */
+.customer-level-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.data-table th {
+  background-color: #f5f7fa;
+  color: #5a5a5a;
+  font-weight: 500;
+}
+
+.data-table tr:hover {
+  background-color: #f5f7fa;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* 表格中金额、占比和笔数列居右对齐 */
+.data-table td:nth-child(2),
+.data-table td:nth-child(3),
+.data-table td:nth-child(4),
+.data-table td:nth-child(5),
+.data-table td:nth-child(6),
+.data-table td:nth-child(7) {
+  text-align: right;
+}
+
+.data-table th:nth-child(2),
+.data-table th:nth-child(3),
+.data-table th:nth-child(4),
+.data-table th:nth-child(5),
+.data-table th:nth-child(6),
+.data-table th:nth-child(7) {
+  text-align: right;
+}
+
+/* 汇总行样式 */
+.data-table .summary-row {
+  background-color: #fafafa;
+  border-top: 2px solid #f0f0f0;
+}
+
+.data-table .summary-row td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* 紧凑型表格样式 */
+.compact-table .ant-table-thead > tr > th,
+.compact-table .ant-table-tbody > tr > td {
+  padding: 4px 8px;
+  line-height: 1.2;
+}
+
+.compact-table .ant-table-thead > tr > th {
+  font-size: 11px;
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+.compact-table .ant-table-tbody > tr > td {
+  font-size: 10px;
+}
+
+.compact-table .ant-table-summary > tr > td {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+/* 产品销售排行表格样式 */
+.product-sales-table .ant-table-thead > tr > th,
+.product-sales-table .ant-table-tbody > tr > td {
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+.product-sales-table .ant-table-thead > tr > th {
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+.product-sales-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+}
+
+.product-sales-table .ant-table-summary > tr > td {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+/* 理财师与主理财师映射关系表格样式 */
+.advisor-mapping-table .ant-table-thead > tr > th,
+.advisor-mapping-table .ant-table-tbody > tr > td {
+  padding: 8px 10px;
+  line-height: 1.4;
+}
+
+.advisor-mapping-table .ant-table-thead > tr > th {
+  font-size: 13px;
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+.advisor-mapping-table .ant-table-tbody > tr > td {
+  font-size: 12px;
+}
+
+.advisor-mapping-table .ant-table-summary > tr > td {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+/* 理财师与主理财师不相等的行样式 */
+.advisor-mapping-table .different-advisor-row {
+  background-color: #ffebee; /* 浅粉红色背景 */
+}
+
+.advisor-mapping-table .different-advisor-row:hover {
+  background-color: #ffcdd2; /* 鼠标悬停时稍深的粉红色 */
+}
+
+/* 添加以下样式 */
+
+/* 确保表格在任何屏幕尺寸下都能完整显示 */
+.project-tables-container {
+  margin-bottom: 20px;
+}
+
+.project-table {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* 确保表格不会出现水平滚动条 */
+.ant-table-wrapper {
+  overflow-x: visible !important;
+}
+
+/* 针对小屏幕进行响应式调整 */
+@media (max-width: 768px) {
+  .project-distribution-row {
+    flex-direction: column;
+  }
+  
+  .project-chart-col,
+  .project-table-col {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  
+  .project-chart-col {
+    margin-bottom: 20px;
+  }
+}
+
+/* 优化表格展示 */
+.compact-table th,
+.compact-table td {
+  padding: 8px 12px !important;
+  white-space: nowrap;
+}
+
+/* 确保项目名称可以适当换行 */
+.project-name-cell {
+  white-space: normal !important;
+  word-break: break-word;
+} 

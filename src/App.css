@@ -1,0 +1,50 @@
+.App {
+  text-align: center;
+}
+
+.logo {
+  height: 32px;
+  margin: 16px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center;
+}
+
+.loading-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  font-size: 18px;
+}
+
+.ant-upload-hint {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.dashboard-card {
+  margin-bottom: 20px;
+}
+
+.data-table-container {
+  overflow-x: auto;
+}
+
+.chart-card {
+  margin-bottom: 16px;
+}
+
+.filter-container {
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analysis-summary {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+} 

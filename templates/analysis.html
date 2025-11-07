@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>数据分析结果 - {{ filename }}</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .container {
+            max-width: 95%;
+        }
+        h2, h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .table-responsive {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">数据分析结果: <small class="text-muted">{{ filename }}</small></h1>
+
+        <div class="alert alert-info" role="alert">
+            文件共有 <strong>{{ num_rows }}</strong> 行, <strong>{{ num_cols }}</strong> 列。
+            <br>
+            列名: {{ columns | join(', ') }}
+        </div>
+
+        <h3>数据预览 (前5行)</h3>
+        <div class="table-responsive">
+            {{ table_head | safe }}
+        </div>
+
+        <h3>按客户等级名称统计</h3>
+        <div class="table-responsive">
+            {{ analysis_table | safe }}
+        </div>
+
+        <hr>
+        <a href="{{ url_for('upload_file') }}" class="btn btn-primary">上传其他文件</a>
+        <p class="mt-5 mb-3 text-muted text-center">&copy; 2024 数据分析平台</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html> 
