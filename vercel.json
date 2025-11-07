@@ -1,25 +1,8 @@
 {
-  "version": 2,
-  "name": "data-dashboard",
-  "builds": [
+  "rewrites": [
     {
-      "src": "build/**",
-      "use": "@vercel/static"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/build/static/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|ico|svg))",
-      "dest": "/build/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/build/index.html"
-    }
-  ],
-  "outputDirectory": "build"
+  ]
 }
