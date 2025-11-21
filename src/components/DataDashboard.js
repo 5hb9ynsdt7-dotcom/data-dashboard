@@ -227,21 +227,7 @@ const DataDashboard = ({ data }) => {
       });
     }
     
-    // 验证筛选结果
-    let totalAmount = 0;
-    
-    filtered.forEach(item => {
-      totalAmount += item['认申购金额人民币'] || 0;
-    });
-    
     setFilteredData(filtered);
-    
-    // 显示通知
-    if (filtered.length > 0) {
-      message.success(`已筛选出${filtered.length}条记录，总金额${(totalAmount/10000).toFixed(2)}万元`);
-    } else {
-      message.info('没有找到符合条件的记录');
-    }
   }, [data, dateRange, selectedBU, selectedLevel, selectedProduct, selectedProject, selectedAdvisor, selectedMainAdvisor]);
   
   // 特定月份快速筛选按钮
@@ -410,9 +396,6 @@ const DataDashboard = ({ data }) => {
       console.log('- 理财师数量:', advisors.size);
       
       setFilteredData(filtered);
-      
-      // 显示筛选结果通知
-      message.success(`已筛选出${filtered.length}条记录，总金额${(totalAmount/10000).toFixed(2)}万元`);
     }
   }, [selectedMonth, data]);
   
@@ -983,7 +966,7 @@ const DataDashboard = ({ data }) => {
               >
                 <ReactECharts
                   option={getAdvisorToMainAdvisorStackedChartOption() || {}}
-                  style={{ height: 420 }}
+                  style={{ height: 630 }}
                   notMerge={true}
                 />
               </Card>

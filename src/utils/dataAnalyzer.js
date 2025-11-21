@@ -1,6 +1,7 @@
 /**
  * 数据分析工具函数
  */
+import { sortByCustomerLevel } from './chartOptions';
 
 // 根据理财师统计业绩
 export const analyzeByFinancialAdvisor = (data) => {
@@ -41,13 +42,13 @@ export const analyzeByFinancialAdvisor = (data) => {
 // 根据客户等级分析
 export const analyzeByCustomerLevel = (data) => {
   if (!data || data.length === 0) return [];
-  
+
   const result = {};
-  
+
   data.forEach(item => {
     const level = item['客户等级名称'] || '未知';
     const amount = item['认申购金额人民币'] || 0;
-    
+
     if (!result[level]) {
       result[level] = {
         客户等级: level,
@@ -56,17 +57,17 @@ export const analyzeByCustomerLevel = (data) => {
         客户数: new Set(),
       };
     }
-    
+
     result[level].交易总金额 += amount;
     result[level].交易笔数 += 1;
     result[level].客户数.add(item['集团号']);
   });
-  
+
   // 转换为数组
   return Object.values(result).map(item => ({
     ...item,
     客户数: item.客户数.size,
-  })).sort((a, b) => b.交易总金额 - a.交易总金额);
+  })).sort((a, b) => sortByCustomerLevel(a.客户等级, b.客户等级));
 };
 
 // 根据BU分析

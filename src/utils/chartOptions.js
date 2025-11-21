@@ -930,4 +930,28 @@ export const getProjectPieChartOption = (data) => {
       }
     ]
   };
+};
+
+// 客户等级排序函数
+// 排序规则：家办 > 黑卡 > 钻石 > 白金 > 黄金 > 其他
+export const sortByCustomerLevel = (a, b) => {
+  const levelOrder = {
+    '家办': 1,
+    '黑卡': 2,
+    '钻石': 3,
+    '白金': 4,
+    '黄金': 5
+  };
+
+  const getOrder = (level) => {
+    const levelStr = level ? level.toString().trim() : '';
+    return levelOrder[levelStr] || 999; // 其他等级排在最后
+  };
+
+  return getOrder(a) - getOrder(b);
+};
+
+// 根据等级字段对数组进行排序
+export const sortArrayByLevel = (array, levelField = '等级') => {
+  return [...array].sort((a, b) => sortByCustomerLevel(a[levelField], b[levelField]));
 }; 

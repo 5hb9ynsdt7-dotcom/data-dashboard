@@ -93,9 +93,9 @@ const FileUploader = ({ onDataUploaded, setLoading }) => {
         
         // 检查必要的字段是否存在
         const requiredFields = [
-          '集团号', '客户等级名称', '客户当前所属BU', '认申购金额人民币', 
+          '集团号', '客户等级名称', '客户当前所属BU', '认申购金额人民币',
           '主理财师工号', '主理财师姓名', '订单签约时间', '支线产品名称',
-          '项目名称', '理财师', '理财师工号'
+          '项目名称', '理财师', '理财师工号', '产品代码'
         ];
         
         const missingFields = requiredFields.filter(field => !headers.includes(field));
@@ -185,6 +185,9 @@ const FileUploader = ({ onDataUploaded, setLoading }) => {
         
         onDataUploaded(result);
         setLoading(false);
+        
+        // 提示用户数据已保存
+        console.log('业绩数据已保存到本地存储，刷新页面后数据不会丢失');
       } catch (err) {
         console.error('解析Excel文件时出错:', err);
         setError('解析文件时出错，请确保上传的是有效的Excel文件');
