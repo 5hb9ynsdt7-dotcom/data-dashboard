@@ -128,7 +128,7 @@ function App() {
       case '7':
         return <ProductStrategyUploader onDataUploaded={handleProductStrategyDataUpload} setLoading={setLoading} existingData={productStrategyData} />;
       case '8':
-        return <StrategyDistribution performanceData={data} strategyData={productStrategyData} />;
+        return <StrategyDistribution performanceData={data} strategyData={productStrategyData} onStrategyUpdate={handleProductStrategyDataUpload} />;
       default:
         return <FileUploader onDataUploaded={handleDataUpload} setLoading={setLoading} />;
     }

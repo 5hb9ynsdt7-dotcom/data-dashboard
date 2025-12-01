@@ -1,10 +1,23 @@
-import React, { useMemo } from 'react';
-import { Card, Table, Row, Col, Statistic } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Card, Table, Row, Col, Statistic, Select, Button, message, Space } from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
 import { formatAmount } from '../utils/chartOptions';
 
-const StrategyDistribution = ({ performanceData, strategyData }) => {
+const { Option } = Select;
+
+const MAJOR_STRATEGIES = ['成长配置', '底仓配置', '尾部对冲', '未知'];
+const SUB_STRATEGIES = {
+  '成长配置': ['主观多头', '量化多头', '量化稳健'],
+  '底仓配置': ['量化稳健', '固收+'],
+  '尾部对冲': ['宏观策略', 'CTA策略'],
+  '未知': ['未知'],
+};
+
+const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate }) => {
+  const [unmatchedEdits, setUnmatchedEdits] = useState({});
+
   const analysisData = useMemo(() => {
     if (!performanceData || !strategyData || performanceData.length === 0 || strategyData.length === 0) {
       return null;
@@ -38,9 +51,11 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
     let unmatchedCount = 0;
     let matchedAmount = 0;
     let unmatchedAmount = 0;
+    const unmatchedProducts = {};
 
     yearlyData.forEach(item => {
       const productCode = item['产品代码'];
+      const productName = item['支线产品名称'] || '';
       const amount = item['认申购金额人民币'] || 0;
 
       if (productCode && strategyMap[productCode]) {
@@ -76,6 +91,18 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
       } else {
         unmatchedCount++;
         unmatchedAmount += amount;
+        if (productCode && !unmatchedProducts[productCode]) {
+          unmatchedProducts[productCode] = {
+            产品代码: productCode,
+            产品名称: productName,
+            交易笔数: 0,
+            交易金额: 0,
+          };
+        }
+        if (productCode) {
+          unmatchedProducts[productCode].交易笔数 += 1;
+          unmatchedProducts[productCode].交易金额 += amount;
+        }
       }
     });
 
@@ -89,6 +116,8 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
       客户数: item.客户数.size,
     })).sort((a, b) => b.交易总金额 - a.交易总金额);
 
+    const unmatchedArray = Object.values(unmatchedProducts).sort((a, b) => b.交易金额 - a.交易金额);
+
     return {
       总交易笔数: yearlyData.length,
       总交易金额: yearlyData.reduce((sum, item) => sum + (item['认申购金额人民币'] || 0), 0),
@@ -99,8 +128,62 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
       匹配率: ((matchedCount / yearlyData.length) * 100).toFixed(2),
       大类策略分布: majorStrategyArray,
       细分策略分布: detailStrategyArray,
+      未匹配产品: unmatchedArray,
     };
   }, [performanceData, strategyData]);
+
+  const handleMajorStrategyChange = (productCode, value) => {
+    setUnmatchedEdits(prev => ({
+      ...prev,
+      [productCode]: {
+        ...prev[productCode],
+        大类策略: value,
+        细分策略: SUB_STRATEGIES[value]?.[0] || '未知',
+      }
+    }));
+  };
+
+  const handleSubStrategyChange = (productCode, value) => {
+    setUnmatchedEdits(prev => ({
+      ...prev,
+      [productCode]: {
+        ...prev[productCode],
+        细分策略: value,
+      }
+    }));
+  };
+
+  const handleSaveStrategies = () => {
+    const editedProducts = Object.entries(unmatchedEdits).filter(([code, data]) =>
+      data.大类策略 && data.细分策略
+    );
+
+    if (editedProducts.length === 0) {
+      message.warning('请先编辑至少一个产品的策略信息');
+      return;
+    }
+
+    const newStrategyData = editedProducts.map(([code, data]) => {
+      const product = analysisData.未匹配产品.find(p => p.产品代码 === code);
+      return {
+        产品代码: code,
+        产品名称: product?.产品名称 || '',
+        大类策略: data.大类策略,
+        细分策略: data.细分策略,
+        是否QD: '否',
+      };
+    });
+
+    const updatedStrategyData = [...(strategyData || []), ...newStrategyData];
+
+    if (onStrategyUpdate) {
+      onStrategyUpdate(updatedStrategyData);
+      message.success(`成功保存 ${editedProducts.length} 条策略数据`);
+      setUnmatchedEdits({});
+    } else {
+      message.error('保存功能未配置');
+    }
+  };
 
   if (!analysisData) {
     return (
@@ -179,6 +262,76 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
       key: '客户数',
       width: 100,
       sorter: (a, b) => a.客户数 - b.客户数,
+    },
+  ];
+
+  const unmatchedColumns = [
+    {
+      title: '产品代码',
+      dataIndex: '产品代码',
+      key: '产品代码',
+      width: 120,
+    },
+    {
+      title: '产品名称',
+      dataIndex: '产品名称',
+      key: '产品名称',
+      width: 300,
+      ellipsis: true,
+    },
+    {
+      title: '交易笔数',
+      dataIndex: '交易笔数',
+      key: '交易笔数',
+      width: 80,
+    },
+    {
+      title: '交易金额',
+      dataIndex: '交易金额',
+      key: '交易金额',
+      width: 120,
+      render: (val) => formatAmount(val),
+    },
+    {
+      title: '大类策略',
+      key: '大类策略',
+      width: 140,
+      render: (_, record) => (
+        <Select
+          style={{ width: 120 }}
+          placeholder="选择策略"
+          value={unmatchedEdits[record.产品代码]?.大类策略}
+          onChange={(value) => handleMajorStrategyChange(record.产品代码, value)}
+          size="small"
+        >
+          {MAJOR_STRATEGIES.map(s => (
+            <Option key={s} value={s}>{s}</Option>
+          ))}
+        </Select>
+      ),
+    },
+    {
+      title: '细分策略',
+      key: '细分策略',
+      width: 140,
+      render: (_, record) => {
+        const majorStrategy = unmatchedEdits[record.产品代码]?.大类策略;
+        const subStrategies = majorStrategy ? SUB_STRATEGIES[majorStrategy] : [];
+        return (
+          <Select
+            style={{ width: 120 }}
+            placeholder="选择策略"
+            value={unmatchedEdits[record.产品代码]?.细分策略}
+            onChange={(value) => handleSubStrategyChange(record.产品代码, value)}
+            disabled={!majorStrategy}
+            size="small"
+          >
+            {subStrategies.map(s => (
+              <Option key={s} value={s}>{s}</Option>
+            ))}
+          </Select>
+        );
+      },
     },
   ];
 
@@ -278,6 +431,10 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
     ],
   };
 
+  const editedCount = Object.keys(unmatchedEdits).filter(k =>
+    unmatchedEdits[k]?.大类策略 && unmatchedEdits[k]?.细分策略
+  ).length;
+
   return (
     <div style={{ padding: 24 }}>
       <h2 style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -324,6 +481,38 @@ const StrategyDistribution = ({ performanceData, strategyData }) => {
           </Card>
         </Col>
       </Row>
+
+      {analysisData.未匹配产品.length > 0 && (
+        <Card
+          title={
+            <Space>
+              <span style={{ color: '#cf1322' }}>
+                未匹配产品 ({analysisData.未匹配产品.length} 个产品，{analysisData.未匹配笔数} 笔交易)
+              </span>
+            </Space>
+          }
+          extra={
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleSaveStrategies}
+              disabled={editedCount === 0}
+            >
+              保存策略 {editedCount > 0 && `(${editedCount})`}
+            </Button>
+          }
+          style={{ marginBottom: 24 }}
+        >
+          <Table
+            dataSource={analysisData.未匹配产品}
+            columns={unmatchedColumns}
+            rowKey="产品代码"
+            pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+            size="small"
+            bordered
+          />
+        </Card>
+      )}
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
