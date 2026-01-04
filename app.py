@@ -17,14 +17,25 @@ def allowed_file(filename):
 # 主页路由：服务React应用
 @app.route('/')
 def serve_react_app():
+    index_path = os.path.join(app.static_folder, 'index.html')
+    if not os.path.exists(index_path):
+        return jsonify({
+            'error': 'Frontend build not found',
+            'message': 'Please run "npm run build" to create the frontend build',
+            'static_folder': app.static_folder,
+            'index_exists': os.path.exists(index_path)
+        }), 500
     return send_from_directory(app.static_folder, 'index.html')
 
 # 所有前端路由：让React Router处理
 @app.route('/<path:path>')
 def serve_react_routes(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, 'index.html')
+    index_path = os.path.join(app.static_folder, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(app.static_folder, 'index.html')
+    return jsonify({'error': 'Frontend build not found'}), 404
 
 # API路由：业绩表文件上传和数据处理
 @app.route('/api/upload', methods=['POST'])
