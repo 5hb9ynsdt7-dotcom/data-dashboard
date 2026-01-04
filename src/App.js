@@ -80,11 +80,40 @@ function App() {
   };
 
   const handleProductStrategyDataUpload = (parsedData) => {
-    setProductStrategyData(parsedData);
+    // 智能合并策略数据：保留已手动补充的策略
+    const existingData = productStrategyData || [];
+
+    // 创建产品代码到策略的映射
+    const strategyMap = new Map();
+
+    // 先加载已有的数据（包含手动补充的）
+    existingData.forEach(item => {
+      if (item.产品代码) {
+        strategyMap.set(item.产品代码, item);
+      }
+    });
+
+    // 用新上传的数据覆盖（新上传的文件优先级更高）
+    parsedData.forEach(item => {
+      if (item.产品代码) {
+        strategyMap.set(item.产品代码, item);
+      }
+    });
+
+    // 转换回数组
+    const mergedData = Array.from(strategyMap.values());
+
+    setProductStrategyData(mergedData);
+
     // 保存到localStorage
     try {
-      localStorage.setItem('productStrategyData', JSON.stringify(parsedData));
-      message.success(`成功上传 ${parsedData.length} 条产品策略数据`);
+      localStorage.setItem('productStrategyData', JSON.stringify(mergedData));
+      const manualCount = mergedData.length - parsedData.length;
+      if (manualCount > 0) {
+        message.success(`成功上传 ${parsedData.length} 条策略数据，保留了 ${manualCount} 条手动补充的策略，合并后共 ${mergedData.length} 条`);
+      } else {
+        message.success(`成功上传 ${parsedData.length} 条产品策略数据`);
+      }
     } catch (error) {
       console.error('Error saving product strategy data to localStorage:', error);
       message.error('保存产品策略数据失败');
@@ -122,13 +151,13 @@ function App() {
       case '4':
         return <CustomerUploader onDataUploaded={handleCustomerDataUpload} setLoading={setLoading} />;
       case '5':
-        return <CustomerDashboard customerData={customerData} />;
+        return <CustomerDashboard customerData={customerData} performanceData={data} />;
       case '6':
         return <OrderAnalysis performanceData={data} customerData={customerData} />;
       case '7':
         return <ProductStrategyUploader onDataUploaded={handleProductStrategyDataUpload} setLoading={setLoading} existingData={productStrategyData} />;
       case '8':
-        return <StrategyDistribution performanceData={data} strategyData={productStrategyData} onStrategyUpdate={handleProductStrategyDataUpload} />;
+        return <StrategyDistribution performanceData={data} strategyData={productStrategyData} customerData={customerData} onStrategyUpdate={handleProductStrategyDataUpload} />;
       default:
         return <FileUploader onDataUploaded={handleDataUpload} setLoading={setLoading} />;
     }

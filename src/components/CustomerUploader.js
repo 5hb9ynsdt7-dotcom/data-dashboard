@@ -17,7 +17,13 @@ const CustomerUploader = ({ onDataUploaded, setLoading }) => {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, {
+          type: 'array',
+          WTF: false,  // 忽略兼容性警告
+          cellDates: true,
+          cellNF: false,
+          cellText: false
+        });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
         
@@ -30,7 +36,7 @@ const CustomerUploader = ({ onDataUploaded, setLoading }) => {
         const headers = jsonData[0];
         
         const requiredFields = [
-          '集团号', '客户正行产品存量(人民币,不含雪球)', '国内理财师工号', '国内理财师',
+          '集团号', '客户正行产品存量(人民币,不含雪球)', '全球主AR工号', '全球主AR',
           '是否受伤客户', '客户姓名(遮蔽)', '未来会员等级', '正行协作理财师',
           '正行协作理财师工号', '所属财富中心'
         ];

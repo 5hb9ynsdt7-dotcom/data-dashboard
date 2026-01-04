@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Table, Row, Col, Statistic, Select, Button, message, Space } from 'antd';
+import { Card, Table, Row, Col, Statistic, Select, Button, message, Space, Modal } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import * as echarts from 'echarts';
 import ReactECharts from 'echarts-for-react';
@@ -15,15 +15,26 @@ const SUB_STRATEGIES = {
   '未知': ['未知'],
 };
 
-const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate }) => {
+const StrategyDistribution = ({ performanceData, strategyData, customerData, onStrategyUpdate }) => {
   const [unmatchedEdits, setUnmatchedEdits] = useState({});
+  const [customerDetailModalVisible, setCustomerDetailModalVisible] = useState(false);
+  const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
 
   const analysisData = useMemo(() => {
     if (!performanceData || !strategyData || performanceData.length === 0 || strategyData.length === 0) {
       return null;
     }
 
-    const currentYear = new Date().getFullYear();
+    // 自动检测数据中的最新年份
+    const years = performanceData
+      .map(item => item['签约年份'])
+      .filter(year => year && !isNaN(year));
+
+    if (years.length === 0) {
+      return null;
+    }
+
+    const currentYear = Math.max(...years);
 
     const yearlyData = performanceData.filter(item => {
       return item['签约年份'] === currentYear;
@@ -118,7 +129,120 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
 
     const unmatchedArray = Object.values(unmatchedProducts).sort((a, b) => b.交易金额 - a.交易金额);
 
+    // 客户策略多样性分析
+    let customerStrategyStats = [];
+    if (customerData && customerData.length > 0) {
+      // 1. 统计每个客户（集团号）购买了几个不同的细分策略
+      const customerStrategyCount = {}; // { groupId: { strategies: Set, products: Set, advisorInfo: {...}, customerName: '' } }
+
+      yearlyData.forEach(item => {
+        const groupId = item['集团号'] ? item['集团号'].toString().trim() : '';
+        const productCode = item['产品代码'];
+        const productName = item['支线产品名称'] || '';
+
+        if (groupId && productCode && strategyMap[productCode]) {
+          const { 细分策略 } = strategyMap[productCode];
+
+          if (!customerStrategyCount[groupId]) {
+            customerStrategyCount[groupId] = {
+              strategies: new Set(),
+              products: new Set(),
+              advisorInfo: null,
+              customerName: ''
+            };
+          }
+
+          customerStrategyCount[groupId].strategies.add(细分策略);
+          if (productName) {
+            customerStrategyCount[groupId].products.add(productName);
+          }
+
+          // 获取客户信息（只需要一次）
+          if (!customerStrategyCount[groupId].advisorInfo) {
+            const customer = customerData.find(c =>
+              c['集团号'] && c['集团号'].toString().trim() === groupId
+            );
+
+            if (customer) {
+              const collabAdvisor = customer['正行协作理财师'] || '';
+              const directAdvisor = customer['全球主AR'] || '';
+              const isSelfDeveloped = collabAdvisor === directAdvisor;
+
+              customerStrategyCount[groupId].advisorInfo = {
+                理财师: collabAdvisor,
+                类型: isSelfDeveloped ? '自拓' : '协同'
+              };
+              customerStrategyCount[groupId].customerName = customer['客户姓名(遮蔽)'] || '';
+            }
+          }
+        }
+      });
+
+      // 2. 按理财师+类型分组统计
+      const advisorStrategyStats = {}; // { '于洁-自拓': { 1策略: 0, 2策略: 0, ..., 客户明细: [] } }
+
+      Object.entries(customerStrategyCount).forEach(([groupId, { strategies, products, advisorInfo, customerName }]) => {
+        if (advisorInfo) {
+          const key = `${advisorInfo.理财师}-${advisorInfo.类型}`;
+          const strategyCount = strategies.size;
+
+          if (!advisorStrategyStats[key]) {
+            advisorStrategyStats[key] = {
+              理财师类型: key,
+              理财师: advisorInfo.理财师,
+              类型: advisorInfo.类型,
+              一个细分策略: 0,
+              二个细分策略: 0,
+              三个细分策略: 0,
+              四个细分策略: 0,
+              五个及以上细分策略: 0,
+              客户总数: 0,
+              客户明细: []
+            };
+          }
+
+          advisorStrategyStats[key].客户总数++;
+
+          // 保存客户明细
+          advisorStrategyStats[key].客户明细.push({
+            集团号: groupId,
+            客户姓名: customerName,
+            策略数量: strategyCount,
+            产品列表: Array.from(products)
+          });
+
+          if (strategyCount === 1) {
+            advisorStrategyStats[key].一个细分策略++;
+          } else if (strategyCount === 2) {
+            advisorStrategyStats[key].二个细分策略++;
+          } else if (strategyCount === 3) {
+            advisorStrategyStats[key].三个细分策略++;
+          } else if (strategyCount === 4) {
+            advisorStrategyStats[key].四个细分策略++;
+          } else if (strategyCount >= 5) {
+            advisorStrategyStats[key].五个及以上细分策略++;
+          }
+        }
+      });
+
+      customerStrategyStats = Object.values(advisorStrategyStats)
+        .map(item => {
+          // 按策略数量从小到大排序客户明细
+          item.客户明细.sort((a, b) => a.策略数量 - b.策略数量);
+          return item;
+        })
+        .sort((a, b) => {
+          // 先按理财师名称排序
+          if (a.理财师 !== b.理财师) {
+            return a.理财师.localeCompare(b.理财师, 'zh-CN');
+          }
+          // 同一理财师，自拓排在协同前面
+          return a.类型 === '自拓' ? -1 : 1;
+        });
+    }
+
     return {
+      年份: currentYear,
       总交易笔数: yearlyData.length,
       总交易金额: yearlyData.reduce((sum, item) => sum + (item['认申购金额人民币'] || 0), 0),
       匹配笔数: matchedCount,
@@ -129,8 +253,9 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
       大类策略分布: majorStrategyArray,
       细分策略分布: detailStrategyArray,
       未匹配产品: unmatchedArray,
+      客户策略统计: customerStrategyStats,
     };
-  }, [performanceData, strategyData]);
+  }, [performanceData, strategyData, customerData]);
 
   const handleMajorStrategyChange = (productCode, value) => {
     setUnmatchedEdits(prev => ({
@@ -335,6 +460,76 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
     },
   ];
 
+  // 处理客户明细点击
+  const handleShowCustomerDetail = (record) => {
+    setSelectedCustomerDetail(record);
+    setCustomerDetailModalVisible(true);
+  };
+
+  // 客户策略多样性统计表格列
+  const customerStrategyColumns = [
+    {
+      title: '理财师-类型',
+      dataIndex: '理财师类型',
+      key: '理财师类型',
+      width: 150,
+      fixed: 'left',
+    },
+    {
+      title: '一个细分策略',
+      dataIndex: '一个细分策略',
+      key: '一个细分策略',
+      width: 120,
+      align: 'center',
+      sorter: (a, b) => a.一个细分策略 - b.一个细分策略,
+    },
+    {
+      title: '二个细分策略',
+      dataIndex: '二个细分策略',
+      key: '二个细分策略',
+      width: 120,
+      align: 'center',
+      sorter: (a, b) => a.二个细分策略 - b.二个细分策略,
+    },
+    {
+      title: '三个细分策略',
+      dataIndex: '三个细分策略',
+      key: '三个细分策略',
+      width: 120,
+      align: 'center',
+      sorter: (a, b) => a.三个细分策略 - b.三个细分策略,
+    },
+    {
+      title: '四个细分策略',
+      dataIndex: '四个细分策略',
+      key: '四个细分策略',
+      width: 120,
+      align: 'center',
+      sorter: (a, b) => a.四个细分策略 - b.四个细分策略,
+    },
+    {
+      title: '五个及以上细分策略',
+      dataIndex: '五个及以上细分策略',
+      key: '五个及以上细分策略',
+      width: 150,
+      align: 'center',
+      sorter: (a, b) => a.五个及以上细分策略 - b.五个及以上细分策略,
+    },
+    {
+      title: '客户总数',
+      dataIndex: '客户总数',
+      key: '客户总数',
+      width: 100,
+      align: 'center',
+      sorter: (a, b) => a.客户总数 - b.客户总数,
+      render: (text, record) => (
+        <a onClick={() => handleShowCustomerDetail(record)} style={{ color: '#1890ff', cursor: 'pointer' }}>
+          {text}
+        </a>
+      ),
+    },
+  ];
+
   const majorStrategyChartOption = {
     title: {
       text: '大类策略交易金额分布',
@@ -438,7 +633,7 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
   return (
     <div style={{ padding: 24 }}>
       <h2 style={{ textAlign: 'center', marginBottom: 24 }}>
-        {new Date().getFullYear()}年策略分布分析
+        {analysisData.年份}年策略分布分析
       </h2>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -538,7 +733,7 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
         />
       </Card>
 
-      <Card title="细分策略分布详情">
+      <Card title="细分策略分布详情" style={{ marginBottom: 24 }}>
         <Table
           dataSource={analysisData.细分策略分布}
           columns={detailStrategyColumns}
@@ -548,6 +743,68 @@ const StrategyDistribution = ({ performanceData, strategyData, onStrategyUpdate 
           bordered
         />
       </Card>
+
+      {analysisData.客户策略统计 && analysisData.客户策略统计.length > 0 && (
+        <Card title="客户下单策略统计">
+          <Table
+            dataSource={analysisData.客户策略统计}
+            columns={customerStrategyColumns}
+            rowKey="理财师类型"
+            pagination={false}
+            size="small"
+            bordered
+            scroll={{ x: 'max-content' }}
+          />
+        </Card>
+      )}
+
+      {/* 客户明细模态框 */}
+      <Modal
+        title={`${selectedCustomerDetail?.理财师类型} - 客户明细`}
+        open={customerDetailModalVisible}
+        onCancel={() => setCustomerDetailModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        {selectedCustomerDetail && (
+          <Table
+            dataSource={selectedCustomerDetail.客户明细}
+            rowKey="集团号"
+            size="small"
+            bordered
+            pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `共 ${total} 条` }}
+            columns={[
+              {
+                title: '客户姓名',
+                dataIndex: '客户姓名',
+                key: '客户姓名',
+                width: 150,
+              },
+              {
+                title: '策略数量',
+                dataIndex: '策略数量',
+                key: '策略数量',
+                width: 100,
+                align: 'center',
+              },
+              {
+                title: '产品列表',
+                dataIndex: '产品列表',
+                key: '产品列表',
+                render: (products) => (
+                  <div>
+                    {products.map((product, index) => (
+                      <div key={index} style={{ marginBottom: 4 }}>
+                        {index + 1}. {product}
+                      </div>
+                    ))}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        )}
+      </Modal>
     </div>
   );
 };

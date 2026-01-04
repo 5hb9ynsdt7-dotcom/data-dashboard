@@ -8,17 +8,17 @@ import { sortByCustomerLevel } from '../utils/chartOptions';
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
-const CustomerDashboard = ({ customerData }) => {
+const CustomerDashboard = ({ customerData, performanceData }) => {
   const [analysis, setAnalysis] = useState(null);
   const [activeTab, setActiveTab] = useState('summary');
 
   useEffect(() => {
     if (customerData && customerData.length > 0) {
-      const result = customerAnalyzer.analyzeCustomerData(customerData);
+      const result = customerAnalyzer.analyzeCustomerData(customerData, performanceData);
       setAnalysis(result);
       console.log('客户分析结果:', result);
     }
-  }, [customerData]);
+  }, [customerData, performanceData]);
 
   const exportToExcel = (data, fileName) => {
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -177,6 +177,21 @@ const CustomerDashboard = ({ customerData }) => {
       width: 140,
     },
     {
+      title: '存量总额占比(%)',
+      dataIndex: '占比存量',
+      key: '存量总额占比',
+      render: value => value.toFixed(2) + '%',
+      width: 140,
+    },
+    {
+      title: '投资额(万元)',
+      dataIndex: '实际投资额',
+      key: '投资额',
+      sorter: (a, b) => a.实际投资额 - b.实际投资额,
+      render: value => (value / 10000).toFixed(2),
+      width: 120,
+    },
+    {
       title: '投资额占比(%)',
       dataIndex: '占比投资额',
       key: '占比投资额',
@@ -286,30 +301,24 @@ const CustomerDashboard = ({ customerData }) => {
       >
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane tab="汇总概览" key="summary">
-            <Row gutter={24}>
-              <Col span={12}>
-                <Card title="自拓 vs 协同分布" size="small">
-                  <Table 
-                    columns={collaborationColumns}
-                    dataSource={analysis.collaborationAnalysis}
-                    rowKey="类型"
-                    pagination={false}
-                    size="small"
-                  />
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card title="客户等级分布" size="small">
-                  <Table 
-                    columns={levelColumns}
-                    dataSource={analysis.levelAnalysis.slice(0, 5)}
-                    rowKey="客户等级"
-                    pagination={false}
-                    size="small"
-                  />
-                </Card>
-              </Col>
-            </Row>
+            <Card title="自拓 vs 协同分布" size="small" style={{ marginBottom: 24 }}>
+              <Table
+                columns={collaborationColumns}
+                dataSource={analysis.collaborationAnalysis}
+                rowKey="类型"
+                pagination={false}
+                size="small"
+              />
+            </Card>
+            <Card title="客户等级分布" size="small">
+              <Table
+                columns={levelColumns}
+                dataSource={analysis.levelAnalysis.slice(0, 5)}
+                rowKey="客户等级"
+                pagination={false}
+                size="small"
+              />
+            </Card>
           </TabPane>
 
           <TabPane tab="理财师分析" key="advisor">
@@ -341,8 +350,8 @@ const CustomerDashboard = ({ customerData }) => {
             <Divider />
             <Title level={5}>说明</Title>
             <Text type="secondary">
-              • 自拓客户：正行协作理财师 = 国内理财师<br/>
-              • 协同客户：正行协作理财师 ≠ 国内理财师<br/>
+              • 自拓客户：正行协作理财师 = 全球主AR<br/>
+              • 协同客户：正行协作理财师 ≠ 全球主AR<br/>
               • 投资额为当前时点总投资额(历史投资)
             </Text>
           </TabPane>

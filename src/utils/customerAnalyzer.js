@@ -2,7 +2,7 @@
 import { sortByCustomerLevel } from './chartOptions';
 
 // 分析客户数据：按正行理财师、客户等级、自拓/协同分类统计
-export const analyzeCustomerData = (customerData) => {
+export const analyzeCustomerData = (customerData, performanceData = null) => {
   if (!customerData || customerData.length === 0) {
     return {
       advisorAnalysis: [],
@@ -14,9 +14,41 @@ export const analyzeCustomerData = (customerData) => {
         selfDevelopedCustomers: 0,
         collaborativeCustomers: 0,
         selfDevelopedInvestment: 0,
-        collaborativeInvestment: 0
+        collaborativeInvestment: 0,
+        selfDevelopedActualInvestment: 0,
+        collaborativeActualInvestment: 0,
       }
     };
+  }
+
+  // 如果有业绩数据，计算最新年份的实际投资额
+  // 自动检测数据中的最新年份
+  let targetYear = new Date().getFullYear();
+  if (performanceData && performanceData.length > 0) {
+    const years = performanceData
+      .map(item => item['签约年份'])
+      .filter(year => year && !isNaN(year));
+    if (years.length > 0) {
+      targetYear = Math.max(...years);
+    }
+  }
+
+  const actualInvestmentMap = {}; // { groupId: actualAmount }
+
+  if (performanceData && performanceData.length > 0) {
+    performanceData.forEach(item => {
+      if (item['签约年份'] === targetYear) {
+        const groupId = item['集团号'] ? item['集团号'].toString().trim() : '';
+        const amount = Number(item['认申购金额人民币']) || 0;
+
+        if (groupId) {
+          if (!actualInvestmentMap[groupId]) {
+            actualInvestmentMap[groupId] = 0;
+          }
+          actualInvestmentMap[groupId] += amount;
+        }
+      }
+    });
   }
 
   // 1. 按正行理财师分组分析
@@ -27,7 +59,7 @@ export const analyzeCustomerData = (customerData) => {
     const advisorId = customer['正行协作理财师工号'] || '未知';
     const level = customer['未来会员等级'] || '未知';
     const investment = Number(customer['客户正行产品存量(人民币,不含雪球)']) || 0;
-    const isSelfDeveloped = customer['正行协作理财师'] === customer['国内理财师'];
+    const isSelfDeveloped = customer['正行协作理财师'] === customer['全球主AR'];
     
     const key = `${advisor}-${advisorId}`;
     
@@ -83,7 +115,7 @@ export const analyzeCustomerData = (customerData) => {
   customerData.forEach(customer => {
     const level = customer['未来会员等级'] || '未知';
     const investment = Number(customer['客户正行产品存量(人民币,不含雪球)']) || 0;
-    const isSelfDeveloped = customer['正行协作理财师'] === customer['国内理财师'];
+    const isSelfDeveloped = customer['正行协作理财师'] === customer['全球主AR'];
     
     if (!levelMap.has(level)) {
       levelMap.set(level, {
@@ -116,40 +148,54 @@ export const analyzeCustomerData = (customerData) => {
       类型: '自拓客户',
       客户数: 0,
       存量总额: 0,
+      实际投资额: 0,
       占比客户数: 0,
+      占比存量: 0,
       占比投资额: 0
     },
     {
       类型: '协同客户',
       客户数: 0,
       存量总额: 0,
+      实际投资额: 0,
       占比客户数: 0,
+      占比存量: 0,
       占比投资额: 0
     }
   ];
 
   const totalCustomers = customerData.length;
-  const totalInvestment = customerData.reduce((sum, customer) => 
+  const totalInvestment = customerData.reduce((sum, customer) =>
     sum + (Number(customer['客户正行产品存量(人民币,不含雪球)']) || 0), 0);
+
+  // 计算总实际投资额
+  const totalActualInvestment = Object.values(actualInvestmentMap).reduce((sum, amount) => sum + amount, 0);
 
   customerData.forEach(customer => {
     const investment = Number(customer['客户正行产品存量(人民币,不含雪球)']) || 0;
-    const isSelfDeveloped = customer['正行协作理财师'] === customer['国内理财师'];
-    
+    const isSelfDeveloped = customer['正行协作理财师'] === customer['全球主AR'];
+    const groupId = customer['集团号'] ? customer['集团号'].toString().trim() : '';
+    const actualInvestment = actualInvestmentMap[groupId] || 0;
+
     if (isSelfDeveloped) {
       collaborationAnalysis[0].客户数++;
       collaborationAnalysis[0].存量总额 += investment;
+      collaborationAnalysis[0].实际投资额 += actualInvestment;
     } else {
       collaborationAnalysis[1].客户数++;
       collaborationAnalysis[1].存量总额 += investment;
+      collaborationAnalysis[1].实际投资额 += actualInvestment;
     }
   });
 
   // 计算占比
   collaborationAnalysis[0].占比客户数 = totalCustomers > 0 ? (collaborationAnalysis[0].客户数 / totalCustomers * 100) : 0;
-  collaborationAnalysis[0].占比投资额 = totalInvestment > 0 ? (collaborationAnalysis[0].存量总额 / totalInvestment * 100) : 0;
+  collaborationAnalysis[0].占比存量 = totalInvestment > 0 ? (collaborationAnalysis[0].存量总额 / totalInvestment * 100) : 0;
+  collaborationAnalysis[0].占比投资额 = totalActualInvestment > 0 ? (collaborationAnalysis[0].实际投资额 / totalActualInvestment * 100) : 0;
+
   collaborationAnalysis[1].占比客户数 = totalCustomers > 0 ? (collaborationAnalysis[1].客户数 / totalCustomers * 100) : 0;
-  collaborationAnalysis[1].占比投资额 = totalInvestment > 0 ? (collaborationAnalysis[1].存量总额 / totalInvestment * 100) : 0;
+  collaborationAnalysis[1].占比存量 = totalInvestment > 0 ? (collaborationAnalysis[1].存量总额 / totalInvestment * 100) : 0;
+  collaborationAnalysis[1].占比投资额 = totalActualInvestment > 0 ? (collaborationAnalysis[1].实际投资额 / totalActualInvestment * 100) : 0;
 
   // 转换Map为数组并排序
   const advisorAnalysis = Array.from(advisorMap.values())
@@ -177,7 +223,9 @@ export const analyzeCustomerData = (customerData) => {
     selfDevelopedCustomers: collaborationAnalysis[0].客户数,
     collaborativeCustomers: collaborationAnalysis[1].客户数,
     selfDevelopedInvestment: collaborationAnalysis[0].存量总额,
-    collaborativeInvestment: collaborationAnalysis[1].存量总额
+    collaborativeInvestment: collaborationAnalysis[1].存量总额,
+    selfDevelopedActualInvestment: collaborationAnalysis[0].实际投资额,
+    collaborativeActualInvestment: collaborationAnalysis[1].实际投资额
   };
 
   return {
@@ -203,7 +251,7 @@ export const getAdvisorDetailAnalysis = (customerData, advisorId) => {
   advisorCustomers.forEach(customer => {
     const level = customer['未来会员等级'] || '未知';
     const investment = Number(customer['客户正行产品存量(人民币,不含雪球)']) || 0;
-    const isSelfDeveloped = customer['正行协作理财师'] === customer['国内理财师'];
+    const isSelfDeveloped = customer['正行协作理财师'] === customer['全球主AR'];
     
     if (!levelMap.has(level)) {
       levelMap.set(level, {
@@ -231,7 +279,7 @@ export const getAdvisorDetailAnalysis = (customerData, advisorId) => {
       集团号: customer['集团号'],
       投资额: investment,
       类型: isSelfDeveloped ? '自拓' : '协同',
-      国内理财师: customer['国内理财师'],
+      全球主AR: customer['全球主AR'],
       所属财富中心: customer['所属财富中心']
     });
   });

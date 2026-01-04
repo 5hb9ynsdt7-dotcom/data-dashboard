@@ -15,30 +15,109 @@ const OrderAnalysis = ({ performanceData, customerData }) => {
   // 分析下单情况的核心函数
   const analyzeOrderStatus = useCallback(() => {
     console.log('开始分析下单情况...');
-    
+
     if (!performanceData || !customerData || performanceData.length === 0 || customerData.length === 0) {
       console.log('数据不完整，跳过分析');
       return null;
     }
 
     try {
+      // 创建客户数据的集团号集合
+      const customerGroupIds = new Set();
+      customerData.forEach(customer => {
+        if (customer['集团号']) {
+          customerGroupIds.add(customer['集团号'].toString().trim());
+        }
+      });
+
+      console.log('客户数据中的集团号数量:', customerGroupIds.size);
+
       // 创建业绩数据的集团号集合 (今年有下单的客户)
       const performanceGroupIds = new Set();
+      const performanceByGroupId = new Map(); // 用于存储每个集团号的交易详情
+
       performanceData.forEach(item => {
         if (item['集团号']) {
-          performanceGroupIds.add(item['集团号'].toString().trim());
+          const groupId = item['集团号'].toString().trim();
+          performanceGroupIds.add(groupId);
+
+          if (!performanceByGroupId.has(groupId)) {
+            performanceByGroupId.set(groupId, {
+              集团号: groupId,
+              交易笔数: 0,
+              交易总额: 0,
+              主理财师: item['主理财师姓名'] || '',
+              理财师: item['理财师'] || '',
+              产品列表: []
+            });
+          }
+
+          const groupData = performanceByGroupId.get(groupId);
+          groupData.交易笔数++;
+          groupData.交易总额 += item['认申购金额人民币'] || 0;
+          if (item['支线产品名称']) {
+            groupData.产品列表.push(item['支线产品名称']);
+          }
         }
       });
 
       console.log('业绩数据中的集团号数量:', performanceGroupIds.size);
 
+      // 找出在业绩数据中有但在客户数据中没有的集团号
+      const missingInCustomerData = [];
+      let missingTotalAmount = 0;
+      let missingTotalCount = 0;
+
+      for (const groupId of performanceGroupIds) {
+        if (!customerGroupIds.has(groupId)) {
+          const perfData = performanceByGroupId.get(groupId);
+          missingInCustomerData.push(perfData);
+          missingTotalAmount += perfData.交易总额;
+          missingTotalCount += perfData.交易笔数;
+        }
+      }
+
+      console.log('======================================');
+      console.log('在业绩数据中有但在客户数据中没有的客户:');
+      console.log('缺失客户数量:', missingInCustomerData.length);
+      console.log('缺失交易笔数:', missingTotalCount);
+      console.log('缺失交易总额:', missingTotalAmount.toLocaleString(), '元');
+      console.log('======================================');
+      console.log('详细清单:');
+      console.table(missingInCustomerData.map(item => ({
+        集团号: item.集团号,
+        交易笔数: item.交易笔数,
+        交易总额: item.交易总额.toFixed(2),
+        主理财师: item.主理财师,
+        理财师: item.理财师,
+        产品数: item.产品列表.length
+      })));
+      console.log('======================================');
+
+      // 统计业绩数据总额和笔数
+      let totalPerformanceAmount = 0;
+      let totalPerformanceCount = 0;
+      performanceData.forEach(item => {
+        totalPerformanceAmount += item['认申购金额人民币'] || 0;
+        totalPerformanceCount++;
+      });
+
+      console.log('======================================');
+      console.log('业绩数据总体统计:');
+      console.log('总交易笔数:', totalPerformanceCount);
+      console.log('总交易金额:', totalPerformanceAmount.toLocaleString(), '元');
+      console.log('总交易金额(亿):', (totalPerformanceAmount / 100000000).toFixed(2), '亿');
+      console.log('======================================');
+
       // 分析每个正行协作理财师的客户下单情况
       const advisorAnalysis = new Map();
+      let customersWithoutAdvisor = 0;
+      let customersWithoutAdvisorAmount = 0;
 
       customerData.forEach(customer => {
         const groupId = customer['集团号'] ? customer['集团号'].toString().trim() : '';
-        const directAdvisorId = customer['国内理财师工号'] ? customer['国内理财师工号'].toString().trim() : '';
-        const directAdvisorName = customer['国内理财师'] ? customer['国内理财师'].toString().trim() : '';
+        const directAdvisorId = customer['全球主AR工号'] ? customer['全球主AR工号'].toString().trim() : '';
+        const directAdvisorName = customer['全球主AR'] ? customer['全球主AR'].toString().trim() : '';
         const collabAdvisorId = customer['正行协作理财师工号'] ? customer['正行协作理财师工号'].toString().trim() : '';
         const collabAdvisorName = customer['正行协作理财师'] ? customer['正行协作理财师'].toString().trim() : '';
         const investment = customer['客户正行产品存量(人民币,不含雪球)'] || 0;
@@ -143,8 +222,21 @@ const OrderAnalysis = ({ performanceData, customerData }) => {
               collabAdvisorData.无单客户数++;
             }
           }
+        } else {
+          // 没有正行协作理财师的客户
+          customersWithoutAdvisor++;
+          if (hasOrdered) {
+            customersWithoutAdvisorAmount += orderAmount;
+          }
         }
       });
+
+      console.log('======================================');
+      console.log('客户数据中缺少正行协作理财师的客户:');
+      console.log('缺失理财师客户数量:', customersWithoutAdvisor);
+      console.log('缺失理财师且有交易的客户金额:', customersWithoutAdvisorAmount.toLocaleString(), '元');
+      console.log('缺失理财师且有交易的客户金额(万元):', (customersWithoutAdvisorAmount / 10000).toFixed(2), '万元');
+      console.log('======================================');
 
       // 转换为数组并按理财师分组排序
       const advisorMap = new Map();
@@ -216,8 +308,8 @@ const OrderAnalysis = ({ performanceData, customerData }) => {
 
       customerData.forEach(customer => {
         const groupId = customer['集团号'] ? customer['集团号'].toString().trim() : '';
-        const directAdvisorId = customer['国内理财师工号'] ? customer['国内理财师工号'].toString().trim() : '';
-        const directAdvisorName = customer['国内理财师'] ? customer['国内理财师'].toString().trim() : '';
+        const directAdvisorId = customer['全球主AR工号'] ? customer['全球主AR工号'].toString().trim() : '';
+        const directAdvisorName = customer['全球主AR'] ? customer['全球主AR'].toString().trim() : '';
         const collabAdvisorId = customer['正行协作理财师工号'] ? customer['正行协作理财师工号'].toString().trim() : '';
         const collabAdvisorName = customer['正行协作理财师'] ? customer['正行协作理财师'].toString().trim() : '';
         const level = customer['未来会员等级'] ? customer['未来会员等级'].toString().trim() : '未知';

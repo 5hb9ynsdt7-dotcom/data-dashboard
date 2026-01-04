@@ -34,13 +34,13 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
       const totalByLevel = new Map();
       // 自拓数据按等级分组
       const directByLevel = new Map();
-      // 协同数据按国内理财师+等级分组
+      // 协同数据按全球主AR+等级分组
       const collabByAdvisorLevel = new Map();
 
       advisorCustomers.forEach(customer => {
         const groupId = customer['集团号'] ? customer['集团号'].toString().trim() : '';
-        const directAdvisorId = customer['国内理财师工号'] ? customer['国内理财师工号'].toString().trim() : '';
-        const directAdvisorName = customer['国内理财师'] ? customer['国内理财师'].toString().trim() : '';
+        const directAdvisorId = customer['全球主AR工号'] ? customer['全球主AR工号'].toString().trim() : '';
+        const directAdvisorName = customer['全球主AR'] ? customer['全球主AR'].toString().trim() : '';
         const collabAdvisorId = customer['正行协作理财师工号'] ? customer['正行协作理财师工号'].toString().trim() : '';
         const level = customer['未来会员等级'] ? customer['未来会员等级'].toString().trim() : '未知';
         const investment = customer['客户正行产品存量(人民币,不含雪球)'] || 0;
@@ -102,10 +102,10 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
             directLevelData.无单客户数++;
           }
         } else {
-          // 协同客户按国内理财师分组
+          // 协同客户按全球主AR分组
           if (!collabByAdvisorLevel.has(directAdvisorName)) {
             collabByAdvisorLevel.set(directAdvisorName, {
-              国内理财师: directAdvisorName,
+              全球主AR: directAdvisorName,
               总计: {
                 客户总数: 0,
                 有单客户数: 0,
@@ -119,7 +119,7 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
 
           const collabAdvisorData = collabByAdvisorLevel.get(directAdvisorName);
 
-          // 更新该国内理财师的总计
+          // 更新该全球主AR的总计
           collabAdvisorData.总计.客户总数++;
           collabAdvisorData.总计.客户存量 += investment;
           if (hasOrdered) {
@@ -215,10 +215,10 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
         } else if (record.类型 === '等级') {
           style = { marginLeft: 20, color: '#595959' };
           displayText = `└─ ${text}`;
-        } else if (record.类型 === '国内理财师') {
+        } else if (record.类型 === '全球主AR') {
           style = { marginLeft: 20, fontWeight: 'bold', color: '#722ed1' };
           displayText = `└─ ${text}`;
-        } else if (record.类型 === '国内理财师-等级') {
+        } else if (record.类型 === '全球主AR-等级') {
           style = { marginLeft: 40, color: '#8c8c8c', fontSize: '13px' };
           displayText = `└─ ${text}`;
         }
@@ -346,11 +346,11 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
       });
 
       detailData.collabByAdvisor.forEach(advisor => {
-        // 国内理财师汇总行
+        // 全球主AR汇总行
         tableData.push({
           key: `collab-advisor-${index++}`,
-          分类: advisor.国内理财师,
-          类型: '国内理财师',
+          分类: advisor.全球主AR,
+          类型: '全球主AR',
           客户总数: advisor.总计.客户总数,
           有单客户数: advisor.总计.有单客户数,
           无单客户数: advisor.总计.无单客户数,
@@ -358,12 +358,12 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
           客户交易金额: advisor.总计.客户交易金额
         });
 
-        // 该国内理财师下的等级分布
+        // 该全球主AR下的等级分布
         advisor.等级分布.forEach(level => {
           tableData.push({
             key: `collab-advisor-level-${index++}`,
             分类: level.等级,
-            类型: '国内理财师-等级',
+            类型: '全球主AR-等级',
             ...level
           });
         });
@@ -431,7 +431,7 @@ const AdvisorOrderDetail = ({ advisorName, performanceData, customerData, onBack
             if (record.类型 === '总计-标题') return 'advisor-total-row';
             if (record.类型 === '自拓-标题') return 'advisor-direct-row';
             if (record.类型 === '协同-标题') return 'advisor-collab-row';
-            if (record.类型 === '国内理财师') return 'advisor-collab-sub-row';
+            if (record.类型 === '全球主AR') return 'advisor-collab-sub-row';
             return '';
           }}
         />
