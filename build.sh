@@ -3,7 +3,7 @@
 
 echo "=== Building Data Dashboard ==="
 
-# Install Node.js dependencies
+# Install Node.js dependencies (use install instead of ci for flexibility)
 echo "Installing Node.js dependencies..."
 npm install --production=false
 
@@ -14,6 +14,7 @@ npm run build
 # Verify build
 if [ -f "build/index.html" ]; then
     echo "✓ Build successful: build/index.html exists"
+    ls -lh build/
 else
     echo "✗ Build failed: build/index.html not found"
     exit 1
