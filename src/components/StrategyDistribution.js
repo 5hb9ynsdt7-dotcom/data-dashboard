@@ -523,9 +523,9 @@ const StrategyDistribution = ({ performanceData, strategyData, customerData, onS
       align: 'center',
       sorter: (a, b) => a.客户总数 - b.客户总数,
       render: (text, record) => (
-        <a onClick={() => handleShowCustomerDetail(record)} style={{ color: '#1890ff', cursor: 'pointer' }}>
+        <span onClick={() => handleShowCustomerDetail(record)} style={{ color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' }}>
           {text}
-        </a>
+        </span>
       ),
     },
   ];

@@ -242,7 +242,7 @@ const OrderAnalysis = ({ performanceData, customerData }) => {
       const advisorMap = new Map();
 
       // 先按理财师姓名分组
-      for (const [key, value] of advisorAnalysis) {
+      for (const [, value] of advisorAnalysis) {
         const advisorName = value.理财师姓名 ? value.理财师姓名.toString().trim() : '';
         if (!advisorMap.has(advisorName)) {
           advisorMap.set(advisorName, []);
@@ -419,7 +419,7 @@ const OrderAnalysis = ({ performanceData, customerData }) => {
     const result = analyzeOrderStatus();
     console.log('分析结果:', result?.advisorList?.length, '条记录');
     setAnalysisResult(result);
-  }, [analyzeOrderStatus]);
+  }, [analyzeOrderStatus, performanceData?.length, customerData?.length]);
 
   // 过滤数据
   const getFilteredData = () => {
