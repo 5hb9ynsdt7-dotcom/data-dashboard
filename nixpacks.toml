@@ -3,9 +3,8 @@ nixPkgs = ["nodejs_18", "python39Full"]
 
 [phases.install]
 cmds = [
-  "python3 -m ensurepip",
-  "python3 -m pip install --upgrade pip",
-  "python3 -m pip install -r requirements.txt",
+  "python3 -m venv /opt/venv",
+  ". /opt/venv/bin/activate && pip install -r requirements.txt",
   "npm install --legacy-peer-deps"
 ]
 
@@ -13,4 +12,4 @@ cmds = [
 cmds = ["npm run build"]
 
 [start]
-cmd = "bash start.sh"
+cmd = ". /opt/venv/bin/activate && bash start.sh"
