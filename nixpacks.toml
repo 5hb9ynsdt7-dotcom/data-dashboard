@@ -1,15 +1,14 @@
 [phases.setup]
-nixPkgs = ["nodejs_18", "python39Full"]
+nixPkgs = ["nodejs_18", "python39"]
 
 [phases.install]
 cmds = [
-  "python3 -m venv /opt/venv",
-  ". /opt/venv/bin/activate && pip install -r requirements.txt",
-  "npm install --legacy-peer-deps"
+  "npm install --legacy-peer-deps",
+  "pip install -r requirements.txt --user"
 ]
 
 [phases.build]
 cmds = ["npm run build"]
 
 [start]
-cmd = ". /opt/venv/bin/activate && bash start.sh"
+cmd = "gunicorn app:app --bind 0.0.0.0:$PORT"
